@@ -1,7 +1,11 @@
 # !usr/bin/env python
 # _*_ coding:utf-8 _*_
 
-import threading
+'''
+database operation module
+'''
+
+import threading, time, uuid, functools, logging
 
 #数据库引擎对象
 class _Engine(object):
@@ -9,8 +13,6 @@ class _Engine(object):
 		self._connect = connect
 	def connect(self):
 		return self._connect()
-
-engine = None
 
 #持有数据库连接的上下文对象：
 class _DbCtx(threading.local):
@@ -32,7 +34,6 @@ class _DbCtx(threading.local):
 	def cursor(self):
 		return self.connection.cursor()
 
-_db_ctx = _DbCtx()
 
 class _ConnectionCtx(object):
 	def __enter__(self):
@@ -47,9 +48,6 @@ class _ConnectionCtx(object):
 		global _db_ctx
 		if self.should_cleanup:
 			_db_ctx.cleanup()
-
-	def connection():
-		return _ConnectionCtx()
 
 	# @with_connection
 	# def select(sql, *args):
@@ -97,6 +95,47 @@ class _TransactionCtx(object):
 		global _db_ctx
 		_db_ctx.connection.rollback()
 
+def connection():
+	return _ConnectionCtx()
+
+def transaction():
+	return _TransactionCtx()
+
+def with_connection(func):
+	@functools.wraps(func)
+	def _wrapper(*args, **kw):
+		print 'call %s():' % func.__name__
+		with connection():
+			return func(*args, **kw)
+	return _wrapper
+
+def with_transaction(func):
+	@functools.wraps(func)
+	def _wrapper(*args, **kw):
+		_start = time.time()
+		with transaction():
+			return func(*args, **kw)
+		_profiling(_start)
+	return _wrapper
+
+@with_connection
+def select(sql, *args):
+	pass
+
+@with_connection
+def update(sql, *args):
+	pass
+
+
+engine = None
+_db_ctx = _DbCtx()
+
+
+
+def next_id(t=None):
+	if t is None:
+		t = time.time()
+	return '%015d%s000' % (int(t * 1000), uuid.uuid4().hex)
 
 # 
 # end

@@ -3,7 +3,8 @@
 
 import time, uuid
 
-from transwarp.py import Model, StringField, BooleanField, FloatField, TextField
+from transwarp.orm import Model, StringField, BooleanField, FloatField, TextField
+from transwarp.db import next_id
 
 class User(Model):
 	__table__ = 'users'

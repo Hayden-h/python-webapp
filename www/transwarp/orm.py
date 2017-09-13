@@ -3,21 +3,61 @@
 import db
 
 class Field(object):
-	def __init__(self, name, column_type):
-		self.name = name
-		self.column_type = column_type
+	_count = 0
+
+	def __init__(self, **kw):
+		self.name = kw.get('name', None)
+		self.column_type = kw.get('column_type', None)
+		self._default = kw.get('default', None)
+		self.primary_key = kw.get('primary_key', False)
+		self.nullable = kw.get('nullable', False)
+		self.updatable = kw.get('updatable', True)
+		self.insertable = kw.get('insertable', True)
+		self.ddl = kw.get('ddl', '')
+		self._order = Field._count
+		Field._count = Field._count + 1
 
 	def __str__(self):
 		return '<%s:%s>' % (self.__class__.__name__, self.name)
 
 class StringField(Field):
-	def __init__(self, name):
-		super(StringField, self).__init__(name, 'varchar(100')
+	def __init__(self, **kw):
+		if not 'default' in kw:
+			kw['default'] = ''
+		if not 'ddl' in kw:
+			kw['ddl'] = 'varchar(255)'
+		super(StringField, self).__init__(**kw)
 
 class IntegerField(Field):
-	def __init__(self, name, primary_key):
-		super(IntegerField, self).__init__(name, 'biginy')
-		self.primary_key = primary_key
+	def __init__(self, **kw):
+		if not 'default' in kw:
+			kw['default'] = 0
+		if not 'ddl' in kw:
+			kw['ddl'] = 'bigint'
+		super(IntegerField, self).__init__(**kw)
+
+class FloatField(Field):
+	def __init__(self, **kw):
+		if not 'default' in kw:
+			kw['default'] = 0.0
+		if not 'ddl' in kw:
+			kw['ddl'] = 'real'
+		super(FloatField, self).__init__(**kw)
+class TextField(Field):
+	def __init(self, **kw):
+		if not 'default' in kw:
+			kw['default'] = ''
+		if not 'ddl' in kw:
+			kw['ddl'] = 'text'
+		super(TextField, self).__init__(**kw)
+
+class BooleanField(Field):
+	def __init__(self, **kw):
+		if not 'default' in kw:
+			kw['default'] = False
+		if not 'ddl' in kw:
+			kw['ddl'] = 'bool'
+		super(BooleanField, self).__init__(**kw)
 
 class ModelMetaclass(type):
 	def __new__(cls, name, bases, attrs):
@@ -25,6 +65,8 @@ class ModelMetaclass(type):
 			return type.__new__(cls, name, bases, attrs)
 
 		mappings = dict()
+		primary_key = None
+		
 		for k, v in attrs.iteritems():
 			if isinstance(v, Field):
 				print('Found mapping: %s==>%s' % (k, v))
@@ -73,11 +115,11 @@ class Model(dict):
 
 	def insert(self):
 		params = {}
-    	for k, v in self.__mappings__.iteritems():
-    		params[v.name] = getattr(self, k)
-    	db.insert(self.__table__, **params)
-    	# return self
-
+		for k, v in self.__mappings__.iteritems():
+			params[v.name] = getattr(self, k)
+		db.insert(self.__table__, **params)
+		return self
+    	
 	@classmethod
 	def get(cls, pk):
 		d = db.select_one('select * from %s where %s=?' % (cls.__table__, cls.__primary_key__.name), pk)
