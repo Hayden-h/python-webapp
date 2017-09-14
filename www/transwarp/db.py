@@ -5,7 +5,9 @@
 database operation module
 '''
 
-import threading, time, uuid, functools, logging
+print('\n====== db.py start ======\n')
+
+import threading, time, uuid, functools, logging, os
 
 #数据库引擎对象
 class _Engine(object):
@@ -13,6 +15,26 @@ class _Engine(object):
 		self._connect = connect
 	def connect(self):
 		return self._connect()
+
+def create_engine(user, password, database, host='127.0.0.1', port=3306, **kw):
+	import sqlite3
+	global engine
+
+	if engine is not None:
+		raise DBError('Engine is already initialized')
+	params = dict(user=user, password=password, database=database, host=host, port=port)
+	defaults = dict(use_unicode=True, charset='utf-8', collation='utf8_general_ci', autocommit=False)
+
+	for k, v in defaults.iteritems():
+		params[k] = kw.pop(k, v)
+
+	params.update(kw)
+	params['buffered'] = True
+	# engine = _Engine(lambda: sqlite3.connect(**params))
+	db_path = os.path.join(os.path.abspath('.'), database)
+	engine = _Engine(lambda: sqlite3.connect(db_path))
+	print('=== Init sqlite3 engine ok ===')
+	print('=== sqlite3 path: %s ===\n' % db_path)
 
 #持有数据库连接的上下文对象：
 class _DbCtx(threading.local):
@@ -61,6 +83,9 @@ class _ConnectionCtx(object):
 	# def do_in_transaction:
 	# 	pass
 
+def connection():
+	return _ConnectionCtx()
+
 class _TransactionCtx(object):
 	def __enter__(self):
 		global _db_ctx
@@ -94,9 +119,6 @@ class _TransactionCtx(object):
 	def rollback(self):
 		global _db_ctx
 		_db_ctx.connection.rollback()
-
-def connection():
-	return _ConnectionCtx()
 
 def transaction():
 	return _TransactionCtx()
@@ -140,6 +162,8 @@ def next_id(t=None):
 # 
 # end
 #
+
+print('\n====== db.py end ======\n')
 
 
 

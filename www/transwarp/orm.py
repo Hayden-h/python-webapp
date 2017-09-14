@@ -1,6 +1,11 @@
 # !usr/bin/env python
 # _*_ coding:utf-8 _*_
+
+print('\n====== orm.py start ======\n')
+
 import db
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class Field(object):
 	_count = 0
@@ -8,7 +13,7 @@ class Field(object):
 	def __init__(self, **kw):
 		self.name = kw.get('name', None)
 		self.column_type = kw.get('column_type', None)
-		self._default = kw.get('default', None)
+		self.default = kw.get('default', None)
 		self.primary_key = kw.get('primary_key', False)
 		self.nullable = kw.get('nullable', False)
 		self.updatable = kw.get('updatable', True)
@@ -70,10 +75,14 @@ class ModelMetaclass(type):
 		for k, v in attrs.iteritems():
 			if isinstance(v, Field):
 				print('Found mapping: %s==>%s' % (k, v))
+
+				if not v.name:
+					v.name = k
+
 				mappings[k] = v
-				if isinstance(v, IntegerField) and v.primary_key:
-					primary_key = v
-					print('Found primary key:%s==>%s' % (k, v))
+				if v.primary_key:
+					primary_key = k
+					print('******Found primary key:%s==>%s' % (k, v))
 
 		for k in mappings.iterkeys():
 			attrs.pop(k)
@@ -88,7 +97,7 @@ class Model(dict):
 	__metaclass__ = ModelMetaclass
 
 	def __init__(self, **kw):
-		super(Model, self).__init__(**kv)
+		super(Model, self).__init__(**kw)
 
 	def __getattr__(self, key):
 		try:
@@ -105,6 +114,7 @@ class Model(dict):
 		args = []
 
 		for k, v in self.__mappings__.iteritems():
+			logging
 			fields.append[v.name]
 			params.append('?')
 			args.append(getattr(self, k, None))
@@ -116,7 +126,12 @@ class Model(dict):
 	def insert(self):
 		params = {}
 		for k, v in self.__mappings__.iteritems():
-			params[v.name] = getattr(self, k)
+			logging.info('debug-insert:k:%s,v:%s,v.name:%s' % (k, v, v.name))
+			if v.insertable:
+				if not hasattr(self, k):
+					setattr(self, k, v.default)
+				params[v.name] = getattr(self, k)
+
 		db.insert(self.__table__, **params)
 		return self
     	
@@ -130,6 +145,8 @@ class Model(dict):
 
 # 通过类方法实现主键查找
 # user = User.get('123')
+
+print('\n====== orm.py end ======\n')
 
 
 

@@ -1,10 +1,13 @@
 # !usr/bin/env python
 # _*_ coding:utf-8 _*_
 
+print('\n====== modles.py start ======\n')
+
 import time, uuid
 
 from transwarp.orm import Model, StringField, BooleanField, FloatField, TextField
 from transwarp.db import next_id
+
 
 class User(Model):
 	__table__ = 'users'
@@ -40,3 +43,4 @@ class Comment(Model):
 	content = TextField()
 	created_at = FloatField(updatable=False, default=time.time)
 
+print('\n====== modles.py end ======\n')
